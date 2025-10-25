@@ -5,3 +5,26 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+  cpu: 1 # Default CPU for a Next.js app
+  memoryMiB: 512 # Default memory for a Next.js app
+  concurrency: 80 # Recommended concurrency for Node.js apps
+
+build:
+  # Specifies the build command for your application.
+  # This command is executed to create the production build artifacts.
+  command: "npm run build"
+
+  # Specifies the output directory of your build artifacts.
+  # For Next.js, this is usually '.next'.
+  outputDirectory: ".next"
+
+run:
+  # Specifies the command to start your application server.
+  # For Next.js, this typically uses 'npm run start'.
+  command: "npm run start"
+
+  # Specifies the port your application listens on.
+  # Firebase App Hosting injects the PORT environment variable.
+  # Next.js applications listen on process.env.PORT by default, but it's good to specify for clarity.
+  environmentVariables:
+    PORT: 8080
