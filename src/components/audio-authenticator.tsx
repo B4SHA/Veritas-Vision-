@@ -1,11 +1,10 @@
-
 "use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { audioAuthenticatorAnalysis } from "@/ai/flows/audio-authenticator-flow";
+import { audioAuthenticatorAnalysis, type AudioAuthenticatorOutput } from "@/ai/flows/audio-authenticator-flow";
 import { fileToDataUri } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -20,7 +19,6 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { useTranslation } from "@/hooks/use-translation";
 import { useLanguage } from "@/context/language-context";
-import type { AudioAuthenticatorOutput, AudioAuthenticatorError } from "@/ai/schemas";
 
 const formSchema = z.object({
   audioFile: z
@@ -34,7 +32,6 @@ const formSchema = z.object({
 export function AudioAuthenticator() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AudioAuthenticatorOutput | null>(null);
-  const [errorResponse, setErrorResponse] = useState<AudioAuthenticatorError | null>(null);
   const [audioPreview, setAudioPreview] = useState<string | null>(null);
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -56,30 +53,16 @@ export function AudioAuthenticator() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setResult(null);
-    setErrorResponse(null);
-
     try {
       const audioDataUri = await fileToDataUri(values.audioFile[0]);
       const analysisResult = await audioAuthenticatorAnalysis({ audioDataUri, language });
-      
-      if ('error' in analysisResult) {
-        setErrorResponse(analysisResult);
-        toast({
-            variant: "destructive",
-            title: "Analysis Failed",
-            description: analysisResult.details || "The AI model failed to generate a response.",
-        });
-      } else {
-        setResult(analysisResult);
-      }
+      setResult(analysisResult);
     } catch (error) {
       console.error(error);
-      const errorDetails = error instanceof Error ? error.message : "An unexpected error occurred.";
-      setErrorResponse({ error: "UNEXPECTED_ERROR", details: errorDetails });
       toast({
         variant: "destructive",
         title: "Analysis Failed",
-        description: errorDetails,
+        description: "An unexpected error occurred. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -92,11 +75,28 @@ export function AudioAuthenticator() {
     return "bg-primary";
   };
 
-  const getVerdictBadgeVariant = (verdict: string) => {
-    const lowerVerdict = verdict.toLowerCase();
-    if (lowerVerdict.includes('authentic')) return 'default';
-    if (lowerVerdict.includes('ai') || lowerVerdict.includes('manipulation')) return 'destructive';
-    return 'secondary';
+  const getVerdictBadgeVariant = (verdict: 'Likely Authentic' | 'Potential AI/Manipulation' | 'Uncertain') => {
+    switch (verdict) {
+      case 'Likely Authentic':
+        return 'default';
+      case 'Potential AI/Manipulation':
+        return 'destructive';
+      case 'Uncertain':
+      default:
+        return 'secondary';
+    }
+  };
+
+  const getVerdictIcon = (verdict: 'Likely Authentic' | 'Potential AI/Manipulation' | 'Uncertain') => {
+    switch (verdict) {
+      case 'Likely Authentic':
+        return <Icons.check className="mr-1.5" />;
+      case 'Potential AI/Manipulation':
+        return <Icons.alert className="mr-1.5" />;
+      case 'Uncertain':
+      default:
+        return <Icons.help className="mr-1.5" />;
+    }
   };
 
   return (
@@ -176,21 +176,11 @@ export function AudioAuthenticator() {
                       <p className="text-center text-muted-foreground">{t('audioAuthenticator.analyzingText')}</p>
                   </div>
                   )}
-                  {!isLoading && !result && !errorResponse && (
+                  {!isLoading && !result && (
                   <div className="flex-1 flex flex-col items-center justify-center text-center text-muted-foreground p-8">
                       <Icons.barChart className="mx-auto mb-4 h-10 w-10" />
                       <p>{t('audioAuthenticator.pendingText')}</p>
                   </div>
-                  )}
-                  {errorResponse && (
-                      <div className="flex-1 flex flex-col min-h-0">
-                        <h3 className="font-semibold text-lg mb-2 px-1 text-destructive">Analysis Failed</h3>
-                        <ScrollArea className="flex-1 pr-4 -mr-4">
-                            <pre className="text-sm leading-relaxed text-destructive/80 whitespace-pre-wrap break-words bg-destructive/10 p-4 rounded-md">
-                                {errorResponse.details || 'The AI model failed to generate a response.'}
-                            </pre>
-                        </ScrollArea>
-                      </div>
                   )}
                   {result && (
                   <ScrollArea className="flex-1 pr-4 -mr-4">
@@ -200,25 +190,20 @@ export function AudioAuthenticator() {
                               <div className="flex items-center justify-between">
                                   <h3 className="font-semibold text-lg">Verdict</h3>
                                   <Badge variant={getVerdictBadgeVariant(result.verdict)} className="px-3 py-1 text-sm">
+                                  {getVerdictIcon(result.verdict)}
                                   {result.verdict}
                                   </Badge>
                               </div>
                               <div className="flex items-center justify-between">
-                                  <h3 className="font-semibold text-lg">Authenticity Score</h3>
+                                  <h3 className="font-semibold text-lg">Overall Score</h3>
                                   <span className="font-bold text-2xl text-primary">{result.overallScore}/100</span>
                               </div>
                               <Progress value={result.overallScore} indicatorClassName={getProgressIndicatorClassName(result.overallScore)} />
                           </div>
                         </div>
                         <Separator/>
-                        
-                        <div className="space-y-2">
-                          <h3 className="font-semibold text-lg px-1">Summary</h3>
-                          <p className="text-sm text-foreground/80">{result.summary}</p>
-                        </div>
-                        <Separator/>
 
-                        {result.detectedText && (
+                        {result.detectedText && result.speechAnalysis && (
                             <>
                                 <Alert>
                                     <Icons.news className="h-4 w-4" />
@@ -228,6 +213,10 @@ export function AudioAuthenticator() {
                                         <blockquote className="border-l-2 pl-4 italic my-2 text-sm max-h-24 overflow-y-auto">
                                             {result.detectedText}
                                         </blockquote>
+                                        <p className="font-semibold mt-3 mb-1">Content Analysis:</p>
+                                        <p className="text-foreground/80 leading-relaxed whitespace-pre-wrap break-words">
+                                            {result.speechAnalysis}
+                                        </p>
                                     </AlertDescription>
                                 </Alert>
                                 <Separator />
@@ -235,7 +224,7 @@ export function AudioAuthenticator() {
                         )}
                         
                         <div className="flex-1 flex flex-col min-h-0">
-                          <h3 className="font-semibold text-lg mb-2 px-1">Detailed Reasoning</h3>
+                          <h3 className="font-semibold text-lg mb-2 px-1">Detailed Forensic Report</h3>
                           <div className="flex-1">
                                 <p className="text-sm leading-relaxed text-foreground/80 whitespace-pre-wrap break-words">
                                     {result.reasoning}

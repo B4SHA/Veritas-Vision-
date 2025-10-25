@@ -14,12 +14,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Icons } from "@/components/icons";
 import { Progress } from "@/components/ui/progress";
+import { Separator } from "./ui/separator";
 import { ScrollArea } from "./ui/scroll-area";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 import { useTranslation } from "@/hooks/use-translation";
 import { useLanguage } from "@/context/language-context";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Badge } from "./ui/badge";
 import type { VideoIntegrityOutput, VideoIntegrityError } from "@/ai/schemas";
 
 const formSchema = z.object({
@@ -29,6 +28,20 @@ const formSchema = z.object({
     .refine((files) => files?.[0]?.type.startsWith("video/"), "Please upload a valid video file.")
     .refine((files) => files?.[0]?.size <= 50 * 1024 * 1024, "File size should be less than 50MB."),
 });
+
+
+function AnalysisItem({ label, value }: { label: string; value: boolean }) {
+    return (
+        <div className="flex items-center justify-between text-sm py-2 px-3">
+            <span className="text-muted-foreground">{label}</span>
+            {value ? (
+                <span className="flex items-center font-medium text-destructive"><Icons.alert className="mr-1.5 h-4 w-4" /> Detected</span>
+            ) : (
+                <span className="flex items-center font-medium text-primary"><Icons.checkCircle className="mr-1.5 h-4 w-4" /> Not Detected</span>
+            )}
+        </div>
+    );
+}
 
 export function VideoIntegrity() {
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +65,7 @@ export function VideoIntegrity() {
     }
   };
 
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     setResult(null);
@@ -60,7 +74,7 @@ export function VideoIntegrity() {
     try {
       const videoDataUri = await fileToDataUri(values.videoFile[0]);
       const analysisResult = await videoIntegrityAnalysis({ videoDataUri, language });
-
+      
       if ('error' in analysisResult) {
         setErrorResponse(analysisResult);
         toast({
@@ -83,39 +97,6 @@ export function VideoIntegrity() {
     } finally {
       setIsLoading(false);
     }
-  }
-
-  const getVerdictBadgeVariant = (verdict: string) => {
-    const lowerVerdict = verdict.toLowerCase();
-    if (lowerVerdict.includes('authentic')) return 'default';
-    if (lowerVerdict.includes('manipulation')) return 'destructive';
-    return 'secondary';
-  };
-  
-  const getProgressIndicatorClassName = (score: number) => {
-    if (score < 40) return "bg-destructive";
-    if (score < 70) return "bg-accent";
-    return "bg-primary";
-  };
-
-  const AnalysisItem = ({ title, content }: { title: string, content: string }) => {
-    const isDetected = content.toLowerCase().startsWith('detected');
-    return (
-       <AccordionItem value={title.toLowerCase().replace(/\s/g, '-')}>
-        <AccordionTrigger>
-          <div className="flex items-center justify-between w-full">
-            <span>{title}</span>
-            <div className={`flex items-center gap-2 text-sm ${isDetected ? 'text-destructive' : 'text-primary'}`}>
-                {isDetected ? <Icons.alert className="h-4 w-4" /> : <Icons.checkCircle className="h-4 w-4" />}
-                <span>{isDetected ? 'Detected' : 'Not Detected'}</span>
-            </div>
-          </div>
-        </AccordionTrigger>
-        <AccordionContent>
-           <p className="text-sm text-muted-foreground">{content.substring(content.indexOf(' ') + 1)}</p>
-        </AccordionContent>
-      </AccordionItem>
-    );
   }
 
   return (
@@ -180,9 +161,9 @@ export function VideoIntegrity() {
 
                 <Card className="w-full shadow-lg border-2 border-border/80 bg-background/80 backdrop-blur-sm flex flex-col min-h-[500px] lg:min-h-auto">
                     <CardHeader>
-                        <CardTitle className="text-xl">Analysis Report</CardTitle>
+                        <CardTitle className="text-xl">{t('videoIntegrity.reportTitle')}</CardTitle>
                         <CardDescription>
-                          The results of the video analysis will appear here.
+                            {t('videoIntegrity.reportDescription')}
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col min-h-0">
@@ -199,7 +180,7 @@ export function VideoIntegrity() {
                         </div>
                         )}
                         {errorResponse && (
-                          <div className="flex-1 flex flex-col min-h-0">
+                          <div className="h-full flex flex-col">
                             <h3 className="font-semibold text-lg mb-2 px-1 text-destructive">Analysis Failed</h3>
                             <ScrollArea className="flex-1 pr-4 -mr-4">
                                 <pre className="text-sm leading-relaxed text-destructive/80 whitespace-pre-wrap break-words bg-destructive/10 p-4 rounded-md">
@@ -208,50 +189,59 @@ export function VideoIntegrity() {
                             </ScrollArea>
                           </div>
                         )}
-                        {result && (
-                          <ScrollArea className="flex-1 -mr-4 pr-4">
-                            <div className="space-y-6">
-                                <Card>
-                                    <CardHeader>
-                                      <div className="flex justify-between items-center">
-                                        <CardTitle className="text-lg">Overall Authenticity</CardTitle>
-                                        <Badge variant={getVerdictBadgeVariant(result.verdict)}>{result.verdict}</Badge>
-                                      </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="flex items-baseline gap-4">
-                                            <span className="font-bold text-5xl text-primary">{result.overallScore}</span>
-                                            <span className="text-muted-foreground text-lg">/ 100</span>
+                        {result && result.analysis && (
+                        <div className="flex-1 flex flex-col min-h-0">
+                            <ScrollArea className="h-full pr-4">
+                                <div className="space-y-4">
+                                    {result.analysis.confidenceScore > 0 ? (
+                                        <>
+                                        <div className="px-1 space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="font-semibold text-lg">Analysis Confidence</h3>
+                                                <span className="font-bold text-2xl text-primary">{result.analysis.confidenceScore.toFixed(0)}%</span>
+                                            </div>
+                                            <Progress value={result.analysis.confidenceScore} indicatorClassName="bg-primary" />
                                         </div>
-                                        <Progress value={result.overallScore} indicatorClassName={getProgressIndicatorClassName(result.overallScore)} className="my-3"/>
-                                        <p className="text-sm text-muted-foreground">{result.summary}</p>
-                                    </CardContent>
-                                </Card>
+                                        <Separator className="my-4" />
+                                        <div className="divide-y rounded-md border bg-muted/20">
+                                            <AnalysisItem label="Deepfake" value={result.analysis.deepfake} />
+                                            <AnalysisItem label="Video Manipulation" value={result.analysis.videoManipulation} />
+                                            <AnalysisItem label="Synthetic Voice" value={result.analysis.syntheticVoice} />
+                                            <AnalysisItem label="Fully AI-Generated" value={result.analysis.fullyAiGenerated} />
+                                            <AnalysisItem label="Satire or Parody" value={result.analysis.satireParody} />
+                                            <AnalysisItem label="Misleading Context" value={result.analysis.misleadingContext} />
+                                        </div>
+                                        <Separator className="my-4" />
+                                        </>
+                                    ) : null}
 
-                                <Accordion type="multiple" defaultValue={['reasoning']} className="w-full">
-                                    <AccordionItem value="reasoning">
-                                        <AccordionTrigger>Reasoning</AccordionTrigger>
-                                        <AccordionContent>{result.reasoning}</AccordionContent>
-                                    </AccordionItem>
-                                    <AnalysisItem title="Deepfake Analysis" content={result.deepfake} />
-                                    <AnalysisItem title="Video Manipulation" content={result.videoManipulation} />
-                                    <AnalysisItem title="Synthetic Voice" content={result.syntheticVoice} />
-                                </Accordion>
+                                    {result.analysis.audioTextAnalysis?.detectedText && (
+                                        <>
+                                        <Alert>
+                                          <Icons.audio className="h-4 w-4" />
+                                          <AlertTitle>Speech Detected in Video</AlertTitle>
+                                          <AlertDescription className="mt-2">
+                                              <p className="font-semibold mb-2">Transcript:</p>
+                                              <blockquote className="border-l-2 pl-4 italic my-2 text-sm max-h-32 overflow-y-auto">
+                                                  {result.analysis.audioTextAnalysis.detectedText}
+                                              </blockquote>
+                                              <p className="font-semibold mt-3 mb-1">Transcript Analysis:</p>
+                                              <p className="text-foreground/80 leading-relaxed whitespace-pre-wrap break-words">
+                                                {result.analysis.audioTextAnalysis.analysis}
+                                              </p>
+                                          </AlertDescription>
+                                        </Alert>
+                                        <Separator />
+                                      </>
+                                    )}
 
-                                {result.detectedText && (
-                                    <Alert className="mt-4">
-                                    <Icons.audio className="h-4 w-4" />
-                                    <AlertTitle>Speech Detected in Video</AlertTitle>
-                                    <AlertDescription className="mt-2">
-                                        <p className="font-semibold mb-2">Transcript:</p>
-                                        <blockquote className="border-l-2 pl-4 italic my-2 text-sm max-h-32 overflow-y-auto">
-                                            {result.detectedText}
-                                        </blockquote>
-                                    </AlertDescription>
-                                    </Alert>
-                                )}
-                            </div>
-                          </ScrollArea>
+                                    <div>
+                                        <h3 className="font-semibold text-lg mb-2">Forensics Summary</h3>
+                                        <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap">{result.analysis.summary}</p>
+                                    </div>
+                                </div>
+                            </ScrollArea>
+                        </div>
                         )}
                     </CardContent>
                 </Card>

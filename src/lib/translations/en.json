@@ -1,4 +1,3 @@
-
 {
   "navigation": {
     "newsSleuth": "News Sleuth",
@@ -9,6 +8,8 @@
   "home": {
     "heroTitle": "Uncover the Truth",
     "heroSubtitle": "AI-powered content analysis for news, video, and audio. Your shield against misinformation.",
+    "heroSubtitle2": "Detect deepfakes, altered images, and synthetic audio with our powerful tools.",
+    "heroSubtitle3": "Empowering you to distinguish fact from fiction in the digital world.",
     "tryNowTitle": "Try It Now",
     "launchButton": "Launch",
     "features": [

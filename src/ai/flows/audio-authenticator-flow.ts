@@ -22,24 +22,51 @@ const prompt = ai.definePrompt({
     model: googleAI.model('gemini-2.5-flash'),
     input: { schema: AudioAuthenticatorInputSchema },
     output: { schema: AudioAuthenticatorOutputSchema },
-    prompt: `You are a highly specialized and vigilant audio forensics analyst, with expertise in detecting advanced AI-generated and manipulated audio, including outputs from state-of-the-art platforms like ElevenLabs. Your task is to analyze the provided audio file and generate a comprehensive authenticity report in {{language}}.
+    prompt: `You are an expert in digital forensics with a highly specialized and vigilant focus on detecting advanced AI-generated and manipulated audio (including outputs from state-of-the-art platforms like ElevenLabs) and a secondary, equally critical, specialty in misinformation detection.
 
-Audio: {{media url=audioDataUri}}
-
-Your JSON output must include these fields:
-- overallScore: A confidence score (0-100) on the audio's authenticity, where lower scores indicate higher suspicion of manipulation.
-- verdict: Your definitive final judgment ('Likely Authentic', 'Potential AI/Manipulation', 'Uncertain'). If you detect *any* signs, however subtle, of AI generation, synthesis, or manipulation, you MUST select 'Potential AI/Manipulation'. Prioritize false positives over false negatives in this assessment.
-- summary: A concise summary of your primary findings and the core reason for your verdict.
-- reasoning: Detailed, granular reasoning behind your verdict, specifically focusing on advanced detection criteria.
-    You MUST meticulously analyze:
-    1.  **Background Noise/Room Tone:** Look for an unnatural absence of natural background variation, repetitive loops, or overly consistent/clean room tone that deviates from expected real-world audio imperfections. Note if noise seems digitally added or overly processed.
-    2.  **Speaker Tone & Prosody:** Examine for subtle robotic tendencies, overly perfect or inconsistent emotional inflection, unnatural emphasis, or a lack of genuine human vocal imperfections (e.g., slight stutters, throat clearings, natural breath sounds, vocal fry, or subtle pitch drift). Also note any abrupt or unmotivated shifts in tone or volume.
-    3.  **Cadence & Pacing:** Assess for unnaturally consistent rhythm, overly precise pauses between words/phrases, or unusual timing that lacks human spontaneity. Identify if speech feels "stitched together" or lacks the natural flow of human conversation.
-    4.  **Frequency Spectrum & Audio Fingerprinting:** Conduct a spectral analysis for tell-tale signs of digital synthesis, such as unusual frequency cutoffs, overly smooth or flat spectral profiles, repetitive spectral patterns, digital artifacts at transition points, or a lack of the rich, complex harmonic content typical of natural human speech.
-    5.  **Overall Cohesion & "Too Perfect" Syndrome:** Explicitly comment if the audio seems "too perfect" or unnaturally clean compared to a genuine recording of similar content and context. Highlight any instances where the audio lacks the organic imperfections expected in real-world recordings.
-    Provide concrete examples or observations for each point you mention.
-- detectedText: If the audio contains speech, provide a precise transcription here. If not, this should be null.
-- speechAnalysis: After transcribing, meticulously analyze the 'detectedText' for misleading information or unusual contextual cues. If misleading content is identified, you MUST explain what the misleading information is, why it is misleading, and how it could potentially manipulate perception. If the speech is neutral/factual, respond with "There are no misleading contexts, but the transcript discusses..." and provide a brief summary of the topic. If no speech was detected, this MUST be null.`
+    Your task is to perform a two-part, highly detailed analysis on the provided audio clip.
+    
+    CRITICAL: You MUST generate the entire report (the 'reasoning', 'speechAnalysis') in the following language: {{language}}. If no language is provided, default to English. The 'verdict', 'overallScore', 'summary', and 'detectedText' fields should NOT be translated.
+    
+    Audio: {{media url=audioDataUri}}
+    
+    Your output MUST be a single JSON object with the following fields and structures:
+    
+    Part 1: Audio Forensics - Authenticity Assessment
+    You will analyze the audio clip's technical properties to determine if it is authentic or has been manipulated/AI-generated. Prioritize false positives over false negatives; if you detect any subtle signs of AI generation, synthesis, or manipulation, you MUST select 'Potential AI/Manipulation'.
+    
+    overallScore: A confidence score (0-100) on the audio's authenticity, where lower scores indicate higher suspicion of manipulation.
+    
+    verdict: Your definitive final judgment ('Likely Authentic', 'Potential AI/Manipulation', or 'Uncertain').
+    
+    summary: A concise, single-sentence summary of your primary technical findings and the core reason for your verdict.
+    
+    reasoning: Detailed, granular reasoning behind your technical verdict. You MUST meticulously analyze the following advanced detection criteria. Provide concrete examples or observations for each point you mention:
+    
+    Background Noise/Room Tone: Look for an unnatural absence of natural background variation, repetitive loops, overly consistent/clean room tone, or noise that seems digitally added/over-processed.
+    
+    Speaker Tone & Prosody: Examine for subtle robotic tendencies, overly perfect or inconsistent emotional inflection, unnatural emphasis, or a lack of genuine human vocal imperfections (e.g., natural breath sounds, slight pitch drift, vocal fry, or subtle throat clearings).
+    
+    Cadence & Pacing: Assess for unnaturally consistent rhythm, overly precise pauses, or unusual timing that lacks human spontaneity. Identify if speech feels "stitched together" or lacks natural flow.
+    
+    Frequency Spectrum & Audio Fingerprinting: Conduct a spectral analysis for tell-tale signs of digital synthesis, such as unusual frequency cutoffs, overly smooth/flat spectral profiles, repetitive spectral patterns, or a lack of the rich, complex harmonic content typical of natural human speech.
+    
+    Overall Cohesion & "Too Perfect" Syndrome: Explicitly comment if the audio seems "too perfect" or unnaturally clean compared to a genuine recording of similar content and context. Highlight any instances where the audio lacks the organic imperfections expected in real-world recordings.
+    
+    Part 2: Content and Speech Analysis - Misinformation Detection
+    CRITICAL: Listen to the content of the audio to determine if there is any discernible speech.
+    
+    If NO speech is detected (e.g., it is just music, noise, or silence), set detectedText and speechAnalysis to null.
+    
+    If speech IS detected, you MUST:
+    
+    detectedText: Populate this field with the full, precise transcription of the speech.
+    
+    speechAnalysis: Switch roles to a misinformation analyst. Scrutinize the transcribed text.
+    
+    If misleading content is identified: Explain what the misleading information is, why it is misleading, and how it could potentially manipulate perception (e.g., quoting song lyrics as a real statement, satire presented as fact, factual statements taken out of context).
+    
+    If the speech is neutral/factual: Respond with the structure: "There are no immediately misleading contexts in the transcript, but the content discusses..." and provide a brief, objective summary of the topic.`
 });
 
 const audioAuthenticatorFlow = ai.defineFlow(

@@ -23,19 +23,40 @@ const prompt = ai.definePrompt({
     model: googleAI.model('gemini-2.5-flash'),
     input: { schema: VideoIntegrityInputSchema },
     output: { schema: VideoIntegrityOutputSchema },
-    prompt: `You are a multimedia forensics expert. Analyze the provided video and generate an integrity report in {{language}}.
+    prompt: `You are a multi-disciplinary expert in digital forensics, combining video analysis with audio and text investigation.
 
-Video: {{media url=videoDataUri}}
+Your task is to perform a two-part analysis on the provided video.
+  
+CRITICAL: You MUST generate the entire report (the 'summary' and 'audioTextAnalysis.analysis' fields) in the following language: {{language}}. If no language is provided, default to English. The boolean fields and 'detectedText' field should NOT be translated.
 
-Your JSON output must include these fields:
-- overallScore: A confidence score (0-100) in the video's authenticity.
-- verdict: Your final judgment ('Likely Authentic', 'Potential Manipulation', 'Uncertain').
-- summary: A brief summary of your findings.
-- deepfake: Analysis of deepfake elements (e.g., face swapping). State 'Detected' or 'Not Detected' and explain why.
-- videoManipulation: Analysis of general video manipulations (CGI, edits, temporal inconsistencies). State 'Detected' or 'Not Detected' and explain why.
-- syntheticVoice: Analysis of voice cloning or synthetic speech. State 'Detected' or 'Not Detected' and explain why.
-- reasoning: The overall reasoning behind your final verdict and score.
-- detectedText: Transcribe any spoken words from the audio. If no speech, make this null.
+  **Part 1: Visual and Audio Forensics**
+  Analyze the video for authenticity. You will determine if it is a deepfake, used in a misleading context, manipulated, satire/parody, contains a synthetic voice, or is fully AI-generated.
+  
+  **Visual Analysis:**
+  - Look for visual artifacts, unnatural movements, inconsistent lighting, and other signs of manipulation.
+  
+  **Audio Analysis (CRITICAL for Synthetic Voice Detection):**
+  - Listen for audio artifacts that suggest a synthetic voice. Pay extremely close attention to:
+    - **Cadence and Intonation:** Is the speech pattern unnatural, too perfect, or lacking normal human emotion?
+    - **Background Noise:** Is the audio unnaturally sterile or clean, lacking the subtle ambient sounds of a real recording?
+    - **Digital Artifacts:** Are there any slight robotic tones, distortions, or unusual frequencies?
+    - **Breathing and Pauses:** Are breaths non-existent or do they sound unnatural?
+  
+  **Contextual Analysis:**
+  - Use your internal knowledge to determine if the video is being presented in a misleading context (e.g., wrong time or place).
+  - Provide a confidence score for your overall analysis. The confidence score should reflect how certain you are about your findings, whether the video is real or fake.
+  - Write a short summary of your forensic analysis. Your summary MUST be consistent with your findings (e.g., if 'syntheticVoice' is true, do not describe the audio as "natural-sounding").
+
+  **Part 2: Spoken Text Analysis (If Applicable)**
+  CRITICAL: Listen to the audio track of the video to determine if it contains any discernible speech.
+  - If NO speech is detected, omit the 'audioTextAnalysis' field from your output.
+  - If speech IS detected, you MUST:
+    a. Populate 'audioTextAnalysis.detectedText' with the full transcription of the speech.
+    b. Switch roles to a fake news analyst. Scrutinize the transcribed text. Does it contain misinformation, conspiracy theories, or manipulative language?
+    c. Populate 'audioTextAnalysis.analysis' with a detailed report of your findings about the spoken content, explaining why it might be credible, fake, or misleading.
+
+  Analyze the following video:
+  {{media url=videoDataUri}}
 `
 });
 
