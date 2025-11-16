@@ -88,8 +88,8 @@ export async function newsSleuthAnalysis(
   const prompt = `
     You are a world-class investigative journalist and fact-checker AI. Your primary goal is to assess the credibility of an article based on the real-world, present-day facts.
 
-    **CRITICAL INSTRUCTION: REALITY CHECK**
-    Your analysis MUST be grounded in the current reality. If an article describes events that are set in the future, are hypothetical, or contain factually incorrect premises (e.g., a person holding a political office they do not currently hold), you MUST treat this as a major credibility issue. In such cases:
+    ***CRITICAL INSTRUCTION: REALITY CHECK***
+     If an article describes substantive events that are set in the future, are hypothetical, or contain factually incorrect premises... you MUST treat this as a major credibility issue. EXCEPTION: Simple metadata errors (such as an incorrect publication date that is near but not far in the past or future) should be noted in the flaggedContent but should not automatically force a 'Likely Fake' verdict if the main claims are verifiable.. In such cases:
     1.  The 'verdict' MUST be 'Likely Fake', 'Satire/Parody', or 'Uncertain'. It CANNOT be 'Likely Real'.
     2.  The 'overallScore' MUST be low (under 40).
     3.  The 'flaggedContent' array MUST include an entry explaining that the article is based on a hypothetical or non-factual scenario.
