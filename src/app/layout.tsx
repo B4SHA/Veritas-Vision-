@@ -13,7 +13,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
   title: 'Veritas Vision',
-  description: 'AI-powered content analysis for news, video, and audio.',
+  description: 'In an ocean of digital noise,Veritas Vision is your anchor for truth.Our essential AI-powered toolkit empowers you to critically analyze news,video, and audio content, navigating the online world with clarity and confidence.',
 };
 
 export default function RootLayout({
@@ -39,7 +39,10 @@ export default function RootLayout({
             <footer className="py-6 md:px-8 md:py-0 border-t">
               <div className="container flex flex-col items-center justify-center gap-4 md:h-20 md:flex-row">
                 <p className="text-balance text-center text-sm leading-loose text-muted-foreground">
-                  Built by Team 2. AI may produce inaccurate information.
+                  Built With ❤️ By Team Veritas Vision | 
+                   AI may produce inaccurate information |
+                    <a href="https://www.instagram.com/basha_immortal/" target="_blank"> Instagram </a> | 
+                    <a href="https://github.com/B4SHA" target="_blank">Github</a>
                 </p>
               </div>
             </footer>
